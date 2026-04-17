@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrintForge 3D | 3D-печать, 3D-сканирование и изготовление деталей</title>
+  <meta
+    name="description"
+    content="3D-печать деталей на заказ, 3D-сканирование, реверс-инжиниринг, прототипирование и мелкосерийное производство."
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <div class="container">
+        <nav class="nav">
+          <a class="brand" href="#hero" aria-label="PrintForge 3D">
+            <span class="brand-mark">PF</span>
+            <span class="brand-text">
+              <strong>PrintForge 3D</strong>
+              <small>3D-печать и цифровое производство</small>
+            </span>
+          </a>
+
+          <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+
+          <div class="nav-menu" id="nav-menu">
+            <a href="#services">Услуги</a>
+            <a href="#materials">Материалы</a>
+            <a href="#workflow">Процесс</a>
+            <a href="#assistant">AI ассистент</a>
+            <a href="#cases">Кейсы</a>
+            <a href="#contact">Контакты</a>
+            <a class="button button-sm" href="#contact">Оставить заявку</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <div class="language-bar">
+      <div class="container language-bar-inner">
+        <p class="language-label">Выберите язык сайта</p>
+        <div class="translate-shell">
+          <button
+            class="translate-trigger"
+            id="translate-trigger"
+            type="button"
+            aria-expanded="false"
+            aria-controls="translate-menu"
+          >
+            <span class="translate-trigger-copy">
+              <span class="translate-trigger-label">Language: Russian</span>
+              <span class="translate-trigger-meta">
+                <span class="translate-trigger-code">RU</span>
+                <span class="translate-trigger-status">RU / EN / ZH / KZ</span>
+              </span>
+            </span>
+            <span class="translate-trigger-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="translate-quick" id="translate-quick"></div>
+          <div class="translate-menu" id="translate-menu" hidden></div>
+          <div id="google_translate_element" class="translate-widget"></div>
+        </div>
+      </div>
+    </div>
+
+    <main>
+      <section class="hero" id="hero">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow">Черно-желтая студия 3D-печати</p>
+            <h1>Производим детали, прототипы и цифровые копии объектов без лишнего шума</h1>
+            <p class="hero-text">
+              Печатаем рабочие детали, сканируем реальные объекты, восстанавливаем геометрию,
+              подготавливаем модели к выпуску и сопровождаем проекты от первой идеи до готового изделия.
+            </p>
+
+            <div class="hero-actions">
+              <a class="button" href="#contact">Получить расчет</a>
+              <a class="button button-secondary" href="#assistant">Спросить AI</a>
+            </div>
+
+            <ul class="hero-points">
+              <li>FDM и SLA печать</li>
+              <li>3D-сканирование деталей</li>
+              <li>Реверс-инжиниринг</li>
+            </ul>
+          </div>
+
+          <div class="hero-panel">
+            <div class="hero-card-main">
+              <span class="badge">индустриальный стиль / инженерный подход</span>
+              <h2>Сайт с встроенным AI-консультантом по производству деталей</h2>
+              <p>
+                Ассистент помогает клиенту понять, какой материал и процесс подойдут под задачу,
+                и переводит диалог в понятную заявку на расчет.
+              </p>
+            </div>
+
+            <div class="hero-stats">
+              <article class="stat-card">
+                <strong>24 ч</strong>
+                <span>экспресс-производство типовых деталей</span>
+              </article>
+              <article class="stat-card">
+                <strong>0.1 мм</strong>
+                <span>точность для подгонки и прототипов</span>
+              </article>
+              <article class="stat-card">
+                <strong>AI</strong>
+                <span>первичная консультация прямо на сайте</span>
+              </article>
+              <article class="stat-card">
+                <strong>1+</strong>
+                <span>от единичной детали до малой серии</span>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="partners">
+        <div class="container">
+          <div class="partners-strip">
+            <span>Инженеры</span>
+            <span>Автосервисы</span>
+            <span>Стартапы</span>
+            <span>Производство</span>
+            <span>Архитекторы</span>
+            <span>Мастерские</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="services">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow">Услуги</p>
+            <h2>Полная структура услуг для студии 3D-производства</h2>
+            <p>
+              Сайт собран вокруг реальных сценариев: изготовление деталей на заказ, цифровое
+              копирование объектов, доработка геометрии и выпуск малых партий.
+            </p>
+          </div>
+
+          <div class="service-grid">
+            <article class="service-card featured">
+              <span class="card-number">01</span>
+              <h3>3D-печать деталей</h3>
+              <p>
+                Корпуса, крепеж, кронштейны, шестерни, оснастка, защитные элементы,
+                прототипы изделий и нестандартные комплектующие.
+              </p>
+              <ul>
+                <li>Единичные экземпляры</li>
+                <li>Малые серии</li>
+                <li>Подбор материала под нагрузку</li>
+              </ul>
+            </article>
+
+            <article class="service-card">
+              <span class="card-number">02</span>
+              <h3>3D-сканирование</h3>
+              <p>Оцифровка деталей, корпусов и объектов для восстановления размеров, архива и повторного производства.</p>
+            </article>
+
+            <article class="service-card">
+              <span class="card-number">03</span>
+              <h3>Реверс-инжиниринг</h3>
+              <p>Построение новой CAD-модели по физической детали, фото, замерам или скану с учетом улучшений конструкции.</p>
+            </article>
+
+            <article class="service-card">
+              <span class="card-number">04</span>
+              <h3>Подготовка 3D-моделей</h3>
+              <p>Оптимизация сеток, усиление слабых зон, проверка посадок и подготовка файлов к стабильной печати.</p>
+            </article>
+
+            <article class="service-card">
+              <span class="card-number">05</span>
+              <h3>Постобработка</h3>
+              <p>Шлифовка, сборка, доводка, окраска, установка закладных и подготовка детали к эксплуатации.</p>
+            </article>
+
+            <article class="service-card">
+              <span class="card-number">06</span>
+              <h3>Мелкосерийное производство</h3>
+              <p>Организация небольших партий для сервисов, R&D, мастерских и внутренней производственной оснастки.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-dark" id="materials">
+        <div class="container materials-layout">
+          <div>
+            <div class="section-head align-left">
+              <p class="eyebrow">Материалы</p>
+              <h2>Технология под задачу, а не задача под технологию</h2>
+              <p>
+                На сайте вынесены основные материалы и сценарии применения, чтобы клиенту было проще
+                ориентироваться еще до общения с менеджером.
+              </p>
+            </div>
+
+            <div class="material-list">
+              <article>
+                <h3>PETG / ABS / ASA</h3>
+                <p>Для функциональных корпусов, креплений, наружных изделий и рабочих деталей с нагрузкой.</p>
+              </article>
+              <article>
+                <h3>PLA / PLA+</h3>
+                <p>Для демонстрационных макетов, быстрых тестов геометрии и недорогих первых итераций.</p>
+              </article>
+              <article>
+                <h3>Nylon / композиты</h3>
+                <p>Для износостойких узлов, где важны прочность, гибкость и стабильная работа в эксплуатации.</p>
+              </article>
+              <article>
+                <h3>SLA-смолы</h3>
+                <p>Для точных мелких деталей, мастер-моделей и объектов с высокой чистотой поверхности.</p>
+              </article>
+            </div>
+          </div>
+
+          <aside class="material-panel">
+            <div class="panel-box">
+              <p class="panel-title">Что чаще всего заказывают</p>
+              <ul class="check-list">
+                <li>Замену снятых с производства деталей</li>
+                <li>Прототипы новых изделий</li>
+                <li>Оснастку, шаблоны и кондукторы</li>
+                <li>Корпуса электроники</li>
+                <li>Детали после 3D-сканирования образца</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section" id="workflow">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow">Процесс</p>
+            <h2>Понятный путь от запроса до готовой детали</h2>
+          </div>
+
+          <div class="timeline">
+            <article class="timeline-item">
+              <span>Шаг 1</span>
+              <h3>Получаем задачу</h3>
+              <p>Клиент присылает фото, файл, размеры или физический образец. Мы оцениваем сроки и путь производства.</p>
+            </article>
+            <article class="timeline-item">
+              <span>Шаг 2</span>
+              <h3>Готовим модель</h3>
+              <p>Если модели нет, строим ее по фото, чертежу или скану, устраняем слабые места и согласуем форму.</p>
+            </article>
+            <article class="timeline-item">
+              <span>Шаг 3</span>
+              <h3>Печатаем и обрабатываем</h3>
+              <p>Изготавливаем деталь, контролируем качество, выполняем нужную постобработку и при необходимости сборку.</p>
+            </article>
+            <article class="timeline-item">
+              <span>Шаг 4</span>
+              <h3>Передаем результат</h3>
+              <p>Клиент получает изделие, а также цифровую модель и повторяемый процесс для следующего заказа.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section assistant-section" id="assistant">
+        <div class="container assistant-grid">
+          <div class="assistant-copy">
+            <p class="eyebrow">AI ассистент</p>
+            <h2>Настоящий помощник в интерфейсе сайта</h2>
+            <p>
+              Я встроил в сайт интерактивного ассистента, который уже работает на фронтенде:
+              принимает вопросы, отвечает по материалам, печати, срокам и 3D-сканированию.
+              Интерфейс и логика готовы для дальнейшего подключения к реальной LLM-модели через API.
+            </p>
+
+            <div class="assistant-points">
+              <article>
+                <strong>Консультирует</strong>
+                <span>по технологии, материалам и подготовке модели</span>
+              </article>
+              <article>
+                <strong>Квалифицирует</strong>
+                <span>выясняет, есть ли образец, размеры, фото или STL</span>
+              </article>
+              <article>
+                <strong>Доводит до заявки</strong>
+                <span>направляет пользователя к расчету и контактной форме</span>
+              </article>
+            </div>
+          </div>
+
+          <div class="assistant-card">
+            <div class="assistant-head">
+              <div>
+                <strong>Forge AI</strong>
+                <span>консультант по 3D-печати и сканированию</span>
+              </div>
+              <span class="assistant-status">online</span>
+            </div>
+
+            <div class="assistant-suggestions">
+              <button class="suggestion-chip" type="button" data-prompt="Какая технология подойдет для прочной детали?">Прочная деталь</button>
+              <button class="suggestion-chip" type="button" data-prompt="У меня нет 3D-модели, что делать?">Нет модели</button>
+              <button class="suggestion-chip" type="button" data-prompt="Как работает 3D-сканирование?">3D-сканирование</button>
+              <button class="suggestion-chip" type="button" data-prompt="Какие сроки изготовления и что нужно для расчета?">Сроки и расчет</button>
+            </div>
+
+            <div class="assistant-chat" id="assistant-chat" aria-live="polite">
+              <article class="chat-message chat-message-bot">
+                <span class="chat-role">Forge AI</span>
+                <p>Здравствуйте. Опишите, что нужно изготовить или отсканировать: деталь, корпус, крепеж, прототип или объект для оцифровки.</p>
+              </article>
+            </div>
+
+            <form class="assistant-form" id="assistant-form">
+              <label class="sr-only" for="assistant-input">Сообщение ассистенту</label>
+              <input id="assistant-input" type="text" placeholder="Например: нужен прочный кронштейн, модели нет, есть только фото">
+              <button class="button" type="submit">Спросить</button>
+            </form>
+            
+          </div>
+        </div>
+      </section>
+
+      <section class="section accent-section">
+        <div class="container cta-banner">
+          <div>
+            <p class="eyebrow">Сложные запросы</p>
+            <h2>Нужно восстановить деталь, которую уже невозможно купить?</h2>
+            <p>Сканируем образец, пересобираем геометрию и выпускаем рабочую замену под реальные условия эксплуатации.</p>
+          </div>
+          <a class="button" href="#contact">Отправить фото детали</a>
+        </div>
+      </section>
+
+      <section class="section" id="cases">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow">Кейсы</p>
+            <h2>Типовые проекты, для которых такой сайт подходит лучше всего</h2>
+          </div>
+
+          <div class="cases-grid">
+            <article class="case-card">
+              <span class="case-tag">Автосервис</span>
+              <h3>Крепеж и пластиковые элементы салона</h3>
+              <p>Восстановление сломанных клипс, кожухов, заглушек и переходников по образцу или части детали.</p>
+            </article>
+            <article class="case-card">
+              <span class="case-tag">Производство</span>
+              <h3>Оснастка и шаблоны для цеха</h3>
+              <p>Изготовление направляющих, кондукторов, защитных элементов и вспомогательных приспособлений.</p>
+            </article>
+            <article class="case-card">
+              <span class="case-tag">Стартап</span>
+              <h3>Корпуса устройств и прототипы</h3>
+              <p>Быстрые итерации геометрии и корпуса продукта до подготовки презентационной и рабочей версии.</p>
+            </article>
+            <article class="case-card">
+              <span class="case-tag">Архитектура</span>
+              <h3>Макеты и нестандартные элементы</h3>
+              <p>Печать деталей для выставок, макетов, интерьерных решений и визуальных презентаций.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-dark">
+        <div class="container benefits-layout">
+          <div class="section-head align-left compact">
+            <p class="eyebrow">Почему мы</p>
+            <h2>Не просто печатаем файл, а разбираем задачу детали и условия ее работы</h2>
+          </div>
+
+          <div class="benefits-grid">
+            <article class="benefit-card">
+              <h3>Технический подход</h3>
+              <p>Учитываем ориентацию печати, нагрузку, усадку, посадки и ресурс еще до запуска изделия в производство.</p>
+            </article>
+            <article class="benefit-card">
+              <h3>Быстрая коммуникация</h3>
+              <p>Клиент может прислать фото, видео, набросок или физический образец, даже если ТЗ пока не оформлено.</p>
+            </article>
+            <article class="benefit-card">
+              <h3>Гибкость масштаба</h3>
+              <p>От одной детали до серии. От декоративного объекта до нагруженного узла для реальной эксплуатации.</p>
+            </article>
+            <article class="benefit-card">
+              <h3>Цифровой архив</h3>
+              <p>Сохраняем геометрию проекта, чтобы повторные заказы оформлялись быстрее и без нового цикла подготовки.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="faq">
+        <div class="container faq-layout">
+          <div class="section-head align-left compact">
+            <p class="eyebrow">FAQ</p>
+            <h2>Частые вопросы о 3D-печати и 3D-сканировании</h2>
+          </div>
+
+          <div class="faq-list">
+            <article class="faq-item">
+              <button class="faq-question" type="button" aria-expanded="false">Можно ли изготовить деталь без готовой 3D-модели?</button>
+              <div class="faq-answer">
+                <p>Да. Можно построить модель по фото, размерам, чертежу, образцу или выполнить 3D-сканирование исходной детали.</p>
+              </div>
+            </article>
+            <article class="faq-item">
+              <button class="faq-question" type="button" aria-expanded="false">Насколько прочные печатные детали?</button>
+              <div class="faq-answer">
+                <p>Это зависит от материала, геометрии и условий эксплуатации. Для рабочих деталей мы подбираем материал под реальную нагрузку.</p>
+              </div>
+            </article>
+            <article class="faq-item">
+              <button class="faq-question" type="button" aria-expanded="false">Можно ли улучшить оригинальную деталь перед печатью?</button>
+              <div class="faq-answer">
+                <p>Да. Мы можем усилить слабые зоны, изменить крепления, добавить ребра жесткости и подготовить более надежную версию изделия.</p>
+              </div>
+            </article>
+            <article class="faq-item">
+              <button class="faq-question" type="button" aria-expanded="false">Что нужно для быстрого расчета?</button>
+              <div class="faq-answer">
+                <p>Лучше всего прислать фото, размеры, описание назначения детали, требуемую прочность и любые имеющиеся файлы или образцы.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section contact-section" id="contact">
+        <div class="container contact-grid">
+          <div class="contact-copy">
+            <p class="eyebrow">Контакты</p>
+            <h2>Отправьте задачу и получите расчет</h2>
+            <p>
+              Опишите, что нужно изготовить, отсканировать или восстановить. Приложите фото, размеры
+              или файл, а сайт уже подготовлен для перевода лида в заявку через форму и AI-консультанта.
+            </p>
+
+            <div class="contact-cards">
+              <article>
+                <span>Почта</span>
+                <strong>arotm200@gmail.com</strong>
+              </article>
+              <article>
+                <span>Телефон</span>
+                <strong>+7 707 167 0968</strong>
+              </article>
+              <article>
+                <span>График</span>
+                <strong>Пн-Сб, 09:00-19:00</strong>
+              </article>
+            </div>
+          </div>
+
+          <form class="contact-form" id="contact-form">
+            <label>
+              <span>Ваше имя</span>
+              <input type="text" name="name" placeholder="Как к вам обращаться">
+            </label>
+            <label>
+              <span>Телефон или Telegram</span>
+              <input type="text" name="contact" placeholder="+7 / @username">
+            </label>
+            <label>
+              <span>Описание задачи</span>
+              <textarea name="task" rows="5" placeholder="Например: нужен прочный корпус, есть фото и примерные размеры"></textarea>
+            </label>
+            <button class="button" type="submit">Отправить заявку</button>
+                      </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-content">
+        <div>
+          <strong>PrintForge 3D</strong>
+          <p>3D-печать, 3D-сканирование, реверс-инжиниринг и изготовление деталей в контрастной черно-желтой подаче.</p>
+        </div>
+        <div class="footer-links">
+          <a href="#services">Услуги</a>
+          <a href="#assistant">AI ассистент</a>
+          <a href="#contact">Контакты</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement(
+        {
+          pageLanguage: "ru",
+          autoDisplay: false,
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+        },
+        "google_translate_element"
+      );
+    }
+  </script>
+  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
