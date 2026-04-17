@@ -8,7 +8,12 @@ const assistantForm = document.querySelector("#assistant-form");
 const assistantInput = document.querySelector("#assistant-input");
 const assistantChat = document.querySelector("#assistant-chat");
 const suggestionChips = document.querySelectorAll(".suggestion-chip");
+const casesGrid = document.querySelector("#cases-grid");
 const contactForm = document.querySelector("#contact-form");
+const contactFileInput = document.querySelector("#contact-file");
+const contactFileMeta = document.querySelector("#contact-file-meta");
+const contactStatus = document.querySelector("#contact-status");
+const contactSubmit = document.querySelector("#contact-submit");
 const translateShell = document.querySelector(".translate-shell");
 const translateTrigger = document.querySelector("#translate-trigger");
 const translateTriggerLabel = document.querySelector(".translate-trigger-label");
@@ -29,9 +34,307 @@ const chatHistory = [
   {
     role: "assistant",
     content:
-      "Hello. Describe what you need to print or scan: a part, housing, fastener, prototype, or object for digitizing.",
+      "Здравствуйте. Опишите, что нужно изготовить или отсканировать: деталь, корпус, крепление, прототип или объект для оцифровки.",
   },
 ];
+
+const postJson = async (url, payload) => {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || "Не удалось выполнить запрос.");
+  }
+
+  return data;
+};
+
+const postForm = async (url, formData) => {
+  const response = await fetch(url, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || "Не удалось выполнить запрос.");
+  }
+
+  return data;
+};
+
+const sendAnalytics = (event, details = {}) => {
+  const payload = JSON.stringify({
+    event,
+    details,
+  });
+
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/track", new Blob([payload], { type: "application/json" }));
+      return;
+    }
+  } catch (error) {}
+
+  fetch("/api/track", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: payload,
+    keepalive: true,
+  }).catch(() => {});
+};
+
+const reportLeadConversion = (leadId, hasFile) => {
+  if (typeof window.gtag === "function") {
+    window.gtag("event", "generate_lead", {
+      event_category: "engagement",
+      event_label: "contact_form",
+      value: hasFile ? 2 : 1,
+    });
+  }
+
+  if (Array.isArray(window.dataLayer)) {
+    window.dataLayer.push({
+      event: "lead_submitted",
+      leadId,
+      hasFile,
+    });
+  }
+};
+
+const formatBytes = (value) => {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "0 Б";
+  }
+
+  if (value < 1024) {
+    return `${value} Б`;
+  }
+
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(1)} КБ`;
+  }
+
+  return `${(value / (1024 * 1024)).toFixed(1)} МБ`;
+};
+
+const setContactStatus = (message = "", tone = "info") => {
+  if (!contactStatus) return;
+
+  const cleanMessage = String(message || "").trim();
+  contactStatus.textContent = cleanMessage;
+  contactStatus.className = "form-status";
+
+  if (!cleanMessage) {
+    return;
+  }
+
+  contactStatus.classList.add("is-visible");
+  if (tone === "success") {
+    contactStatus.classList.add("is-success");
+  } else if (tone === "error") {
+    contactStatus.classList.add("is-error");
+  } else {
+    contactStatus.classList.add("is-info");
+  }
+};
+
+const syncContactFileMeta = () => {
+  if (!contactFileMeta || !contactFileInput) return;
+
+  const file = contactFileInput.files?.[0];
+  if (!file) {
+    contactFileMeta.textContent = "";
+    return;
+  }
+
+  contactFileMeta.textContent = `Выбран файл: ${file.name} (${formatBytes(file.size)})`;
+};
+
+const formatContactError = (error) => {
+  const rawMessage = String(error?.message || "").trim();
+  if (!rawMessage) {
+    return "Не удалось отправить заявку. Попробуйте еще раз.";
+  }
+
+  if (rawMessage.includes("слишком большой")) {
+    return rawMessage;
+  }
+
+  if (rawMessage.includes("TELEGRAM_BOT_TOKEN") || rawMessage.includes("TELEGRAM_CHAT_ID")) {
+    return "Форма приняла заявку, но Telegram на сервере пока не настроен. Проверьте переменные окружения.";
+  }
+
+  return rawMessage;
+};
+
+const formatAssistantError = (error) => {
+  const rawMessage = String(error?.message || "").trim();
+
+  if (!rawMessage) {
+    return "Ошибка AI-сервера. Проверьте настройки модели и попробуйте снова.";
+  }
+
+  if (rawMessage.includes("memory layout cannot be allocated")) {
+    return "Ollama не может запустить модель из-за нехватки памяти. Попробуйте более лёгкую модель или освободите RAM.";
+  }
+
+  if (rawMessage.includes("OPENAI_API_KEY")) {
+    return "На сервере не настроен ключ OpenAI.";
+  }
+
+  if (rawMessage.includes("HF_API_KEY")) {
+    return "На сервере не настроен ключ Hugging Face.";
+  }
+
+  if (rawMessage.includes("Ollama")) {
+    return rawMessage;
+  }
+
+  return rawMessage;
+};
+
+const addMessage = (role, text) => {
+  if (!assistantChat) return;
+
+  const message = document.createElement("article");
+  message.className = `chat-message ${role === "user" ? "chat-message-user" : "chat-message-bot"}`;
+
+  const roleLabel = document.createElement("span");
+  roleLabel.className = "chat-role";
+  roleLabel.textContent = role === "user" ? "Клиент" : "3DD AI";
+
+  const content = document.createElement("p");
+  content.textContent = text;
+
+  message.append(roleLabel, content);
+  assistantChat.appendChild(message);
+  assistantChat.scrollTop = assistantChat.scrollHeight;
+};
+
+const createCaseMetric = ({ label = "", value = "" }) => {
+  const wrapper = document.createElement("div");
+  const term = document.createElement("dt");
+  const description = document.createElement("dd");
+
+  term.textContent = label;
+  description.textContent = value;
+  wrapper.append(term, description);
+  return wrapper;
+};
+
+const createCaseCard = (item) => {
+  const article = document.createElement("article");
+  article.className = "case-card case-card-detailed";
+
+  const content = document.createElement("div");
+  content.className = "case-content";
+
+  const topline = document.createElement("div");
+  topline.className = "case-topline";
+
+  const tag = document.createElement("span");
+  tag.className = "case-tag";
+  tag.textContent = item.tag || "Кейс";
+
+  const status = document.createElement("span");
+  status.className = "case-status";
+  status.textContent = item.status || "Пример";
+
+  topline.append(tag, status);
+
+  const title = document.createElement("h3");
+  title.textContent = item.title || "Без названия";
+
+  const description = document.createElement("p");
+  description.textContent = item.description || "";
+
+  content.append(topline, title, description);
+
+  if (Array.isArray(item.metrics) && item.metrics.length) {
+    const metrics = document.createElement("dl");
+    metrics.className = "case-metrics";
+    item.metrics.forEach((metric) => metrics.appendChild(createCaseMetric(metric)));
+    content.appendChild(metrics);
+  }
+
+  if (Array.isArray(item.bullets) && item.bullets.length) {
+    const bullets = document.createElement("ul");
+    bullets.className = "case-bullets";
+    item.bullets.forEach((entry) => {
+      const bullet = document.createElement("li");
+      bullet.textContent = entry;
+      bullets.appendChild(bullet);
+    });
+    content.appendChild(bullets);
+  }
+
+  article.appendChild(content);
+  return article;
+};
+
+const renderCases = (items) => {
+  if (!casesGrid) return;
+
+  casesGrid.innerHTML = "";
+
+  if (!Array.isArray(items) || !items.length) {
+    return;
+  }
+
+  items.forEach((item) => {
+    casesGrid.appendChild(createCaseCard(item));
+  });
+};
+
+const loadCases = async () => {
+  if (!casesGrid) return;
+
+  try {
+    const response = await fetch("content/cases.json", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error("cases.json is unavailable");
+    }
+
+    const data = await response.json();
+    renderCases(data);
+  } catch (error) {
+    renderCases([]);
+  }
+};
+
+const submitAssistantPrompt = async (prompt, source = "form") => {
+  const cleanPrompt = prompt.trim();
+  if (!cleanPrompt) return;
+
+  addMessage("user", cleanPrompt);
+  chatHistory.push({ role: "user", content: cleanPrompt });
+  sendAnalytics("assistant_prompt_client", {
+    source,
+    prompt_length: cleanPrompt.length,
+  });
+
+  try {
+    const data = await postJson("/api/chat", {
+      message: cleanPrompt,
+      history: chatHistory.slice(-10),
+    });
+
+    const reply = data.reply || "Ассистент не вернул ответ.";
+    addMessage("assistant", reply);
+    chatHistory.push({ role: "assistant", content: reply });
+  } catch (error) {
+    addMessage("assistant", formatAssistantError(error));
+  }
+};
 
 if (navToggle && navMenu) {
   navToggle.addEventListener("click", () => {
@@ -55,96 +358,12 @@ faqButtons.forEach((button) => {
   });
 });
 
-const addMessage = (role, text) => {
-  if (!assistantChat) return;
-
-  const message = document.createElement("article");
-  message.className = `chat-message ${role === "user" ? "chat-message-user" : "chat-message-bot"}`;
-
-  const roleLabel = document.createElement("span");
-  roleLabel.className = "chat-role";
-  roleLabel.textContent = role === "user" ? "Client" : "Forge AI";
-
-  const content = document.createElement("p");
-  content.textContent = text;
-
-  message.append(roleLabel, content);
-  assistantChat.appendChild(message);
-  assistantChat.scrollTop = assistantChat.scrollHeight;
-};
-
-const postJson = async (url, payload) => {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const message = data.error || "Request failed.";
-    throw new Error(message);
-  }
-
-  return data;
-};
-
-const formatAssistantError = (error) => {
-  const rawMessage = String(error?.message || "").trim();
-
-  if (!rawMessage) {
-    return "AI server error. Check the model settings and try again.";
-  }
-
-  if (rawMessage.includes("memory layout cannot be allocated")) {
-    return "Ollama cannot start the model because there is not enough available memory. Try a lighter model or free up RAM.";
-  }
-
-  if (rawMessage.includes("OPENAI_API_KEY")) {
-    return "OpenAI key is not configured on the server.";
-  }
-
-  if (rawMessage.includes("HF_API_KEY")) {
-    return "Hugging Face key is not configured on the server.";
-  }
-
-  if (rawMessage.includes("Ollama")) {
-    return rawMessage;
-  }
-
-  return rawMessage;
-};
-
-const submitAssistantPrompt = async (prompt) => {
-  const cleanPrompt = prompt.trim();
-  if (!cleanPrompt) return;
-
-  addMessage("user", cleanPrompt);
-  chatHistory.push({ role: "user", content: cleanPrompt });
-
-  try {
-    const data = await postJson("/api/chat", {
-      message: cleanPrompt,
-      history: chatHistory.slice(-10),
-    });
-
-    const reply = data.reply || "No answer was received from the assistant.";
-    addMessage("assistant", reply);
-    chatHistory.push({ role: "assistant", content: reply });
-  } catch (error) {
-    addMessage("assistant", formatAssistantError(error));
-  }
-};
-
 if (assistantForm && assistantInput) {
   assistantForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const prompt = assistantInput.value;
     assistantInput.value = "";
-    await submitAssistantPrompt(prompt);
+    await submitAssistantPrompt(prompt, "form");
     assistantInput.focus();
   });
 }
@@ -152,26 +371,63 @@ if (assistantForm && assistantInput) {
 suggestionChips.forEach((chip) => {
   chip.addEventListener("click", async () => {
     const prompt = chip.dataset.prompt || chip.textContent || "";
-    await submitAssistantPrompt(prompt);
+    await submitAssistantPrompt(prompt, "chip");
   });
 });
+
+if (contactFileInput) {
+  contactFileInput.addEventListener("change", syncContactFileMeta);
+  syncContactFileMeta();
+}
 
 if (contactForm) {
   contactForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    setContactStatus("Отправляем заявку...", "info");
 
     const formData = new FormData(contactForm);
-    const payload = {
-      name: String(formData.get("name") || "").trim(),
-      contact: String(formData.get("contact") || "").trim(),
-      task: String(formData.get("task") || "").trim(),
-    };
+    const contactValue = String(formData.get("contact") || "").trim();
+    const taskValue = String(formData.get("task") || "").trim();
+    const hasFile = Boolean(contactFileInput?.files?.[0]);
+
+    if (!contactValue) {
+      setContactStatus("Укажите телефон или Telegram для обратной связи.", "error");
+      return;
+    }
+
+    if (!taskValue) {
+      setContactStatus("Опишите задачу перед отправкой.", "error");
+      return;
+    }
+
+    if (contactSubmit) {
+      contactSubmit.disabled = true;
+    }
+
+    sendAnalytics("lead_submit_started", { has_file: hasFile });
 
     try {
-      await postJson("/api/contact", payload);
+      const data = await postForm("/api/contact", formData);
       contactForm.reset();
+      syncContactFileMeta();
+      setContactStatus(
+        `Заявка отправлена${data.lead_id ? `, номер ${data.lead_id}` : ""}. Мы свяжемся с вами после первичной оценки.`,
+        "success"
+      );
+      reportLeadConversion(data.lead_id || "", hasFile);
+      sendAnalytics("lead_submit_client_success", {
+        has_file: hasFile,
+        lead_id: data.lead_id || "",
+      });
     } catch (error) {
-      // Intentionally silent to keep the UI clean.
+      setContactStatus(formatContactError(error), "error");
+      sendAnalytics("lead_submit_failed", {
+        has_file: hasFile,
+      });
+    } finally {
+      if (contactSubmit) {
+        contactSubmit.disabled = false;
+      }
     }
   });
 }
@@ -353,3 +609,10 @@ if ("IntersectionObserver" in window) {
 
   fadeTargets.forEach((element) => observer.observe(element));
 }
+
+loadCases();
+
+sendAnalytics("page_view", {
+  page: window.location.pathname,
+  language: getTranslateCookieValue() || "ru",
+});

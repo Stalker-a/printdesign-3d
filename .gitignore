@@ -1,3 +1,8 @@
 .env
 __pycache__/
 *.pyc
+data/uploads/
+data/analytics/
+data/client_bot_sessions.json
+data/client_bot_state.json
+data/client_bot_leads.json

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PrintForge 3D | 3D-печать, 3D-сканирование и изготовление деталей</title>
+  <title>3d_design | 3D-печать, 3D-сканирование и изготовление деталей</title>
   <meta
     name="description"
     content="3D-печать деталей на заказ, 3D-сканирование, реверс-инжиниринг, прототипирование и мелкосерийное производство."
@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="assets/3dd-emblem.svg">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -18,10 +19,12 @@
     <header class="site-header">
       <div class="container">
         <nav class="nav">
-          <a class="brand" href="#hero" aria-label="PrintForge 3D">
-            <span class="brand-mark">PF</span>
+          <a class="brand" href="#hero" aria-label="3d_design">
+            <span class="brand-mark">
+              <img src="assets/3dd-emblem.svg" alt="3d_design emblem">
+            </span>
             <span class="brand-text">
-              <strong>PrintForge 3D</strong>
+              <strong>3d_design</strong>
               <small>3D-печать и цифровое производство</small>
             </span>
           </a>
@@ -308,7 +311,7 @@
           <div class="assistant-card">
             <div class="assistant-head">
               <div>
-                <strong>Forge AI</strong>
+                <strong>3DD AI</strong>
                 <span>консультант по 3D-печати и сканированию</span>
               </div>
               <span class="assistant-status">online</span>
@@ -323,7 +326,7 @@
 
             <div class="assistant-chat" id="assistant-chat" aria-live="polite">
               <article class="chat-message chat-message-bot">
-                <span class="chat-role">Forge AI</span>
+                <span class="chat-role">3DD AI</span>
                 <p>Здравствуйте. Опишите, что нужно изготовить или отсканировать: деталь, корпус, крепеж, прототип или объект для оцифровки.</p>
               </article>
             </div>
@@ -353,31 +356,10 @@
         <div class="container">
           <div class="section-head">
             <p class="eyebrow">Кейсы</p>
-            <h2>Типовые проекты, для которых такой сайт подходит лучше всего</h2>
+            <h2>Конкретные кейсы, которые помогают продавать услугу без долгих объяснений</h2>
           </div>
 
-          <div class="cases-grid">
-            <article class="case-card">
-              <span class="case-tag">Автосервис</span>
-              <h3>Крепеж и пластиковые элементы салона</h3>
-              <p>Восстановление сломанных клипс, кожухов, заглушек и переходников по образцу или части детали.</p>
-            </article>
-            <article class="case-card">
-              <span class="case-tag">Производство</span>
-              <h3>Оснастка и шаблоны для цеха</h3>
-              <p>Изготовление направляющих, кондукторов, защитных элементов и вспомогательных приспособлений.</p>
-            </article>
-            <article class="case-card">
-              <span class="case-tag">Стартап</span>
-              <h3>Корпуса устройств и прототипы</h3>
-              <p>Быстрые итерации геометрии и корпуса продукта до подготовки презентационной и рабочей версии.</p>
-            </article>
-            <article class="case-card">
-              <span class="case-tag">Архитектура</span>
-              <h3>Макеты и нестандартные элементы</h3>
-              <p>Печать деталей для выставок, макетов, интерьерных решений и визуальных презентаций.</p>
-            </article>
-          </div>
+          <div class="cases-grid" id="cases-grid"></div>
         </div>
       </section>
 
@@ -452,7 +434,8 @@
             <h2>Отправьте задачу и получите расчет</h2>
             <p>
               Опишите, что нужно изготовить, отсканировать или восстановить. Приложите фото, размеры
-              или файл, а сайт уже подготовлен для перевода лида в заявку через форму и AI-консультанта.
+              или файл. Заявки с сайта уходят в отдельного Telegram-бота для обработки, а для живой переписки
+              можно сразу написать нашему клиентскому Telegram-боту.
             </p>
 
             <div class="contact-cards">
@@ -468,24 +451,48 @@
                 <span>График</span>
                 <strong>Пн-Сб, 09:00-19:00</strong>
               </article>
+              <article>
+                <span>Бот для заявок</span>
+                <strong>Отдельный Telegram-бот принимает заявки с сайта</strong>
+              </article>
+            </div>
+
+            <div class="contact-telegram-bot">
+              <p class="contact-telegram-bot-label">Telegram-бот для клиентов</p>
+              <a class="button button-secondary" href="https://t.me/Print_forge_client_bot" target="_blank" rel="noreferrer">
+                Написать нашему Telegram-боту
+              </a>
             </div>
           </div>
 
-          <form class="contact-form" id="contact-form">
+          <form class="contact-form" id="contact-form" enctype="multipart/form-data" novalidate>
             <label>
               <span>Ваше имя</span>
-              <input type="text" name="name" placeholder="Как к вам обращаться">
+              <input type="text" name="name" placeholder="Как к вам обращаться" autocomplete="name">
             </label>
             <label>
               <span>Телефон или Telegram</span>
-              <input type="text" name="contact" placeholder="+7 / @username">
+              <input type="text" name="contact" placeholder="+7 / @username" autocomplete="tel" required>
             </label>
             <label>
               <span>Описание задачи</span>
-              <textarea name="task" rows="5" placeholder="Например: нужен прочный корпус, есть фото и примерные размеры"></textarea>
+              <textarea name="task" rows="5" placeholder="Например: нужен прочный корпус, есть фото и примерные размеры" required></textarea>
             </label>
-            <button class="button" type="submit">Отправить заявку</button>
-                      </form>
+            <label class="contact-upload" for="contact-file">
+              <span>Фото, STL, STEP, PDF или архив проекта</span>
+              <input
+                class="contact-file-input"
+                id="contact-file"
+                type="file"
+                name="attachment"
+                accept=".jpg,.jpeg,.png,.webp,.pdf,.stl,.step,.stp,.obj,.3mf,.zip"
+              >
+              <span class="contact-file-meta" id="contact-file-meta"></span>
+            </label>
+            <p class="form-helper">После отправки заявка уйдет в Telegram-бота для заявок.</p>
+            <p class="form-status" id="contact-status" aria-live="polite"></p>
+            <button class="button" id="contact-submit" type="submit">Отправить заявку</button>
+          </form>
         </div>
       </section>
     </main>
@@ -493,7 +500,7 @@
     <footer class="site-footer">
       <div class="container footer-content">
         <div>
-          <strong>PrintForge 3D</strong>
+          <strong>3d_design</strong>
           <p>3D-печать, 3D-сканирование, реверс-инжиниринг и изготовление деталей в контрастной черно-желтой подаче.</p>
         </div>
         <div class="footer-links">
@@ -501,6 +508,10 @@
           <a href="#assistant">AI ассистент</a>
           <a href="#contact">Контакты</a>
         </div>
+      </div>
+      <div class="container footer-socials">
+        <a href="https://www.instagram.com/3d_reverse_scan_kz/" target="_blank" rel="noreferrer">Instagram: 3d_reverse_scan_kz</a>
+        <a href="https://t.me/kakogoviga" target="_blank" rel="noreferrer">Telegram-канал: t.me/kakogoviga</a>
       </div>
     </footer>
   </div>

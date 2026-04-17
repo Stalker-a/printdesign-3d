@@ -2,6 +2,6 @@ services:
   - type: web
     name: printdesign-3d
     runtime: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: python server.py
