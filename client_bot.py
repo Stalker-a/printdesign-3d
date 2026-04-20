@@ -154,6 +154,19 @@ def lead_intro_message() -> str:
     )
 
 
+def lead_name_message() -> str:
+    return (
+        "РЈРєР°Р¶РёС‚Рµ РёРјСЏ Рё С„Р°РјРёР»РёСЋ РґР»СЏ Р·Р°СЏРІРєРё."
+    )
+
+
+def lead_contact_message() -> str:
+    return (
+        "РўРµРїРµСЂСЊ РѕС‚РїСЂР°РІСЊС‚Рµ РєРѕРЅС‚Р°РєС‚ РґР»СЏ РѕР±СЂР°С‚РЅРѕР№ СЃРІСЏР·Рё: "
+        "С‚РµР»РµС„РѕРЅ, @username РёР»Рё РґСЂСѓРіРѕР№ СѓРґРѕР±РЅС‹Р№ СЃРїРѕСЃРѕР± СЃРІСЏР·Рё."
+    )
+
+
 def lead_task_message() -> str:
     return (
         "Теперь коротко опишите задачу: что нужно изготовить, отсканировать "
@@ -189,6 +202,7 @@ def html_escape(text: str) -> str:
 
 
 def format_client_lead_alert(
+    lead_name: str,
     first_name: str,
     username: str,
     user_id: int,
@@ -200,6 +214,7 @@ def format_client_lead_alert(
         "<b>Новая заявка из клиентского Telegram-бота</b>\n"
         f"<b>Сайт:</b> {html_escape(SITE_NAME)}\n\n"
         f"<b>Имя в Telegram:</b> {html_escape(first_name or 'Не указано')}\n"
+        f"<b>РРјСЏ Рё С„Р°РјРёР»РёСЏ:</b> {html_escape(lead_name or 'РќРµ СѓРєР°Р·Р°РЅРѕ')}\n"
         f"<b>Username:</b> {html_escape(username_line)}\n"
         f"<b>Telegram user id:</b> {user_id}\n"
         f"<b>Контакт:</b> {html_escape(contact)}\n\n"
@@ -235,6 +250,14 @@ def handle_lead_flow(chat_id: int, text: str, leads: dict[str, dict], message: d
     if not current:
         return False
 
+    if current.get("step") == "name":
+        current["lead_name"] = text
+        current["step"] = "contact"
+        leads[session_key] = current
+        save_leads(leads)
+        send_message(chat_id, lead_contact_message())
+        return True
+
     if current.get("step") == "contact":
         current["contact"] = text
         current["step"] = "task"
@@ -250,6 +273,7 @@ def handle_lead_flow(chat_id: int, text: str, leads: dict[str, dict], message: d
         user_id = int(from_user.get("id") or chat_id)
 
         alert = format_client_lead_alert(
+            lead_name=str(current.get("lead_name", "")).strip(),
             first_name=first_name,
             username=username,
             user_id=user_id,
@@ -304,9 +328,9 @@ def process_update(update: dict, sessions: dict[str, list[dict]], leads: dict[st
         return
 
     if text == "/lead":
-        leads[str(chat_id)] = {"step": "contact", "contact": ""}
+        leads[str(chat_id)] = {"step": "name", "lead_name": "", "contact": ""}
         save_leads(leads)
-        send_message(chat_id, lead_intro_message())
+        send_message(chat_id, lead_name_message())
         return
 
     if not text:

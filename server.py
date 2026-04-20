@@ -2,7 +2,11 @@ import json
 import os
 import re
 import sys
+import threading
+import time
 import uuid
+import hmac
+from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from email.parser import BytesParser
@@ -65,10 +69,57 @@ PORT = int(os.getenv("PORT", "8000"))
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", "10485760"))
 INTERNAL_ANALYTICS_ENABLED = env_flag("INTERNAL_ANALYTICS_ENABLED", "1")
 METRICS_TOKEN = os.getenv("METRICS_TOKEN", "").strip()
+METRICS_HEADER_NAME = os.getenv("METRICS_HEADER_NAME", "X-Metrics-Token").strip() or "X-Metrics-Token"
+TRUST_PROXY_HEADERS = env_flag("TRUST_PROXY_HEADERS", "0")
+TRUSTED_PROXY_IPS = {
+    item.strip()
+    for item in os.getenv("TRUSTED_PROXY_IPS", "127.0.0.1,::1").split(",")
+    if item.strip()
+}
+MAX_CHAT_MESSAGE_CHARS = int(os.getenv("MAX_CHAT_MESSAGE_CHARS", "2000"))
+MAX_CONTACT_NAME_CHARS = int(os.getenv("MAX_CONTACT_NAME_CHARS", "100"))
+MAX_CONTACT_FIELD_CHARS = int(os.getenv("MAX_CONTACT_FIELD_CHARS", "120"))
+MAX_TASK_CHARS = int(os.getenv("MAX_TASK_CHARS", "4000"))
+ALLOWED_ORIGINS = {
+    item.strip().lower().rstrip("/")
+    for item in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if item.strip()
+}
+ALLOWED_UPLOAD_EXTENSIONS = {
+    item.strip().lower()
+    for item in os.getenv(
+        "ALLOWED_UPLOAD_EXTENSIONS",
+        ".jpg,.jpeg,.png,.webp,.pdf,.stl,.step,.stp,.obj,.3mf,.zip",
+    ).split(",")
+    if item.strip()
+}
 
 MAX_JSON_BYTES = 256 * 1024
 MAX_FORM_BYTES = MAX_UPLOAD_BYTES + 512 * 1024
 TRACK_EVENT_RE = re.compile(r"^[a-z_]{3,48}$")
+PUBLIC_STATIC_PATHS = {"/", "/index.html", "/metrics.html"}
+PUBLIC_STATIC_PREFIXES = ("/assets/", "/content/", "/css/", "/js/")
+RATE_LIMIT_CHAT_WINDOW_SEC = int(os.getenv("RATE_LIMIT_CHAT_WINDOW_SEC", "60"))
+RATE_LIMIT_CHAT_MAX = int(os.getenv("RATE_LIMIT_CHAT_MAX", "12"))
+RATE_LIMIT_CONTACT_WINDOW_SEC = int(os.getenv("RATE_LIMIT_CONTACT_WINDOW_SEC", "600"))
+RATE_LIMIT_CONTACT_MAX = int(os.getenv("RATE_LIMIT_CONTACT_MAX", "5"))
+RATE_LIMIT_TRACK_WINDOW_SEC = int(os.getenv("RATE_LIMIT_TRACK_WINDOW_SEC", "60"))
+RATE_LIMIT_TRACK_MAX = int(os.getenv("RATE_LIMIT_TRACK_MAX", "120"))
+
+RATE_LIMIT_RULES = {
+    "/api/chat": {"limit": RATE_LIMIT_CHAT_MAX, "window": RATE_LIMIT_CHAT_WINDOW_SEC},
+    "/api/contact": {"limit": RATE_LIMIT_CONTACT_MAX, "window": RATE_LIMIT_CONTACT_WINDOW_SEC},
+    "/api/track": {"limit": RATE_LIMIT_TRACK_MAX, "window": RATE_LIMIT_TRACK_WINDOW_SEC},
+}
+RATE_LIMIT_STATE: dict[str, dict[str, deque[float]]] = {path: {} for path in RATE_LIMIT_RULES}
+RATE_LIMIT_LOCK = threading.Lock()
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Cache-Control": "no-store",
+}
 
 
 @dataclass
@@ -90,11 +141,13 @@ def ensure_directory(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def json_response(handler, status: int, payload: dict) -> None:
+def json_response(handler, status: int, payload: dict, headers: dict | None = None) -> None:
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
     handler.send_header("Content-Length", str(len(body)))
+    for header_name, header_value in (headers or {}).items():
+        handler.send_header(header_name, str(header_value))
     handler.end_headers()
     handler.wfile.write(body)
 
@@ -114,6 +167,65 @@ def read_json(handler, max_bytes: int = MAX_JSON_BYTES):
         return json.loads(raw_body.decode("utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError("Некорректный JSON.") from exc
+
+
+def enforce_text_limit(value: str, limit: int, field_label: str) -> str:
+    cleaned = str(value or "").strip()
+    if len(cleaned) > limit:
+        raise ValueError(f"{field_label} слишком длинное. Максимум {limit} символов.")
+    return cleaned
+
+
+def is_allowed_upload_extension(filename: str) -> bool:
+    return Path(filename).suffix.lower() in ALLOWED_UPLOAD_EXTENSIONS
+
+
+def request_scheme(handler) -> str:
+    forwarded_proto = handler.headers.get("X-Forwarded-Proto", "").strip().lower()
+    if forwarded_proto in {"http", "https"}:
+        return forwarded_proto
+    return "http"
+
+
+def request_host(handler) -> str:
+    forwarded_host = handler.headers.get("X-Forwarded-Host", "").strip()
+    if forwarded_host:
+        return forwarded_host
+    return handler.headers.get("Host", "").strip()
+
+
+def request_origin(handler) -> str:
+    host = request_host(handler)
+    if not host:
+        return ""
+    return f"{request_scheme(handler)}://{host}".lower().rstrip("/")
+
+
+def extract_origin(value: str) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    parsed = parse.urlsplit(raw)
+    if not parsed.scheme or not parsed.netloc:
+        return ""
+    return f"{parsed.scheme}://{parsed.netloc}".lower().rstrip("/")
+
+
+def is_allowed_request_origin(handler) -> bool:
+    expected_origin = request_origin(handler)
+    candidates = {origin for origin in ALLOWED_ORIGINS if origin}
+    if expected_origin:
+        candidates.add(expected_origin)
+
+    header_origin = extract_origin(handler.headers.get("Origin", ""))
+    if header_origin:
+        return header_origin in candidates
+
+    referer_origin = extract_origin(handler.headers.get("Referer", ""))
+    if referer_origin:
+        return referer_origin in candidates
+
+    return True
 
 
 def read_multipart_form(handler) -> tuple[dict, UploadedFile | None]:
@@ -146,6 +258,9 @@ def read_multipart_form(handler) -> tuple[dict, UploadedFile | None]:
             safe_name = sanitize_filename(filename)
             if not safe_name:
                 continue
+            if not is_allowed_upload_extension(safe_name):
+                allowed = ", ".join(sorted(ALLOWED_UPLOAD_EXTENSIONS))
+                raise ValueError(f"Недопустимый тип файла. Разрешены только: {allowed}.")
             if len(raw_content) > MAX_UPLOAD_BYTES:
                 raise ValueError(
                     f"Файл слишком большой. Прикрепляйте файлы не больше {MAX_UPLOAD_BYTES // (1024 * 1024)} МБ."
@@ -161,6 +276,13 @@ def read_multipart_form(handler) -> tuple[dict, UploadedFile | None]:
         charset = part.get_content_charset() or "utf-8"
         fields[field_name] = raw_content.decode(charset, errors="ignore").strip()
 
+    if "name" in fields:
+        fields["name"] = enforce_text_limit(fields.get("name", ""), MAX_CONTACT_NAME_CHARS, "Имя")
+    if "contact" in fields:
+        fields["contact"] = enforce_text_limit(fields.get("contact", ""), MAX_CONTACT_FIELD_CHARS, "Контакт")
+    if "task" in fields:
+        fields["task"] = enforce_text_limit(fields.get("task", ""), MAX_TASK_CHARS, "Описание задачи")
+
     return fields, upload
 
 
@@ -169,9 +291,9 @@ def read_contact_submission(handler) -> tuple[dict, UploadedFile | None]:
     if content_type.startswith("application/json"):
         payload = read_json(handler)
         fields = {
-            "name": str(payload.get("name", "")).strip(),
-            "contact": str(payload.get("contact", "")).strip(),
-            "task": str(payload.get("task", "")).strip(),
+            "name": enforce_text_limit(payload.get("name", ""), MAX_CONTACT_NAME_CHARS, "Имя"),
+            "contact": enforce_text_limit(payload.get("contact", ""), MAX_CONTACT_FIELD_CHARS, "Контакт"),
+            "task": enforce_text_limit(payload.get("task", ""), MAX_TASK_CHARS, "Описание задачи"),
         }
         return fields, None
 
@@ -194,7 +316,64 @@ def sanitize_filename(filename: str) -> str:
     return safe_name[:96].strip("._-")
 
 
+def decode_text_sample(content: bytes, limit: int = 4096) -> str:
+    return content[:limit].decode("utf-8", errors="ignore")
+
+
+def validate_upload_content(upload: UploadedFile) -> None:
+    content = upload.content or b""
+    suffix = Path(upload.filename).suffix.lower()
+    if not content:
+        raise ValueError("Пустой файл не принимается.")
+
+    if suffix in {".jpg", ".jpeg"}:
+        if not content.startswith(b"\xff\xd8\xff"):
+            raise ValueError("Файл JPG поврежден или поддельный.")
+        return
+
+    if suffix == ".png":
+        if not content.startswith(b"\x89PNG\r\n\x1a\n"):
+            raise ValueError("Файл PNG поврежден или поддельный.")
+        return
+
+    if suffix == ".webp":
+        if len(content) < 12 or content[:4] != b"RIFF" or content[8:12] != b"WEBP":
+            raise ValueError("Файл WEBP поврежден или поддельный.")
+        return
+
+    if suffix == ".pdf":
+        if not content.startswith(b"%PDF-"):
+            raise ValueError("Файл PDF поврежден или поддельный.")
+        return
+
+    if suffix in {".zip", ".3mf"}:
+        if not content.startswith((b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")):
+            raise ValueError("ZIP/3MF архив поврежден или поддельный.")
+        return
+
+    if suffix in {".step", ".stp"}:
+        if "ISO-10303-21" not in decode_text_sample(content, 512).upper():
+            raise ValueError("STEP/STP файл не распознан.")
+        return
+
+    if suffix == ".obj":
+        sample = decode_text_sample(content)
+        obj_markers = ("\nv ", "\nf ", "\no ", "\ng ", "\nvt ", "\nvn ", "#")
+        if not any(marker in f"\n{sample}" for marker in obj_markers):
+            raise ValueError("OBJ файл не распознан.")
+        return
+
+    if suffix == ".stl":
+        sample = decode_text_sample(content, 256).lstrip().lower()
+        if sample.startswith("solid"):
+            return
+        if len(content) >= 84:
+            return
+        raise ValueError("STL файл не распознан.")
+
+
 def save_uploaded_file(upload: UploadedFile, lead_id: str) -> dict:
+    validate_upload_content(upload)
     ensure_directory(UPLOAD_DIR)
     stored_name = f"{lead_id.lower()}-{upload.filename}"
     target_path = UPLOAD_DIR / stored_name
@@ -228,11 +407,61 @@ def anonymize_ip(ip_address: str) -> str:
     return value
 
 
-def get_client_ip(handler) -> str:
-    forwarded = handler.headers.get("X-Forwarded-For", "")
-    if forwarded:
-        return forwarded.split(",", 1)[0].strip()
+def direct_client_ip(handler) -> str:
     return handler.client_address[0] if handler.client_address else ""
+
+
+def request_comes_from_trusted_proxy(handler) -> bool:
+    peer_ip = direct_client_ip(handler).strip()
+    return bool(TRUST_PROXY_HEADERS and peer_ip and peer_ip in TRUSTED_PROXY_IPS)
+
+
+def get_client_ip(handler) -> str:
+    if request_comes_from_trusted_proxy(handler):
+        cf_ip = handler.headers.get("CF-Connecting-IP", "")
+        if cf_ip:
+            return cf_ip.strip()
+        real_ip = handler.headers.get("X-Real-IP", "")
+        if real_ip:
+            return real_ip.strip()
+        forwarded = handler.headers.get("X-Forwarded-For", "")
+        if forwarded:
+            return forwarded.split(",", 1)[0].strip()
+    return direct_client_ip(handler)
+
+
+def log_unexpected_error(area: str, exc: Exception) -> None:
+    print(f"[{area} error] {exc}", file=sys.stderr)
+
+
+def rate_limit_key(handler) -> str:
+    ip_address = get_client_ip(handler).strip()
+    return ip_address or "unknown"
+
+
+def take_rate_limit_slot(handler, path: str) -> tuple[bool, int]:
+    rule = RATE_LIMIT_RULES.get(path)
+    if not rule:
+        return True, 0
+
+    limit = max(1, int(rule["limit"]))
+    window = max(1, int(rule["window"]))
+    now = time.monotonic()
+    client_key = rate_limit_key(handler)
+
+    with RATE_LIMIT_LOCK:
+        buckets = RATE_LIMIT_STATE.setdefault(path, {})
+        timestamps = buckets.setdefault(client_key, deque())
+
+        while timestamps and now - timestamps[0] >= window:
+            timestamps.popleft()
+
+        if len(timestamps) >= limit:
+            retry_after = max(1, int(window - (now - timestamps[0])) + 1)
+            return False, retry_after
+
+        timestamps.append(now)
+        return True, 0
 
 
 def request_context(handler) -> dict:
@@ -708,14 +937,70 @@ class ApiHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(BASE_DIR), **kwargs)
 
+    def version_string(self) -> str:
+        return "3d_design"
+
+    def end_headers(self) -> None:
+        for header_name, header_value in SECURITY_HEADERS.items():
+            self.send_header(header_name, header_value)
+        super().end_headers()
+
+    @staticmethod
+    def is_public_static_path(path: str) -> bool:
+        normalized = str(path or "").strip()
+        if normalized in PUBLIC_STATIC_PATHS:
+            return True
+        return any(normalized.startswith(prefix) for prefix in PUBLIC_STATIC_PREFIXES)
+
     def do_GET(self):
         parsed = parse.urlparse(self.path)
         if parsed.path == "/api/metrics":
             self.handle_metrics(parsed)
             return
+        if not self.is_public_static_path(parsed.path):
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
         super().do_GET()
 
+    def do_HEAD(self):
+        parsed = parse.urlparse(self.path)
+        if not self.is_public_static_path(parsed.path):
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        super().do_HEAD()
+
+    def rate_limit_or_reject(self, path: str) -> bool:
+        allowed, retry_after = take_rate_limit_slot(self, path)
+        if allowed:
+            return True
+
+        self.close_connection = True
+        json_response(
+            self,
+            HTTPStatus.TOO_MANY_REQUESTS,
+            {
+                "error": (
+                    "Слишком много запросов с этого IP. "
+                    f"Попробуйте снова через {retry_after} сек."
+                )
+            },
+            headers={"Retry-After": str(retry_after)},
+        )
+        return False
+
+    def origin_or_reject(self) -> bool:
+        if is_allowed_request_origin(self):
+            return True
+        json_response(
+            self,
+            HTTPStatus.FORBIDDEN,
+            {"error": "Запрос с этого источника запрещен политикой безопасности."},
+        )
+        return False
+
     def do_POST(self):
+        if not self.origin_or_reject():
+            return
         parsed = parse.urlparse(self.path)
         if parsed.path == "/api/chat":
             self.handle_chat()
@@ -738,14 +1023,19 @@ class ApiHandler(SimpleHTTPRequestHandler):
             return
 
         query = parse.parse_qs(parsed_path.query)
-        token = str(query.get("token", [""])[0]).strip()
-        if token != METRICS_TOKEN:
+        token = (
+            str(self.headers.get(METRICS_HEADER_NAME, "")).strip()
+            or str(query.get("token", [""])[0]).strip()
+        )
+        if not token or not hmac.compare_digest(token, METRICS_TOKEN):
             json_response(self, HTTPStatus.FORBIDDEN, {"error": "Неверный token для метрик."})
             return
 
         json_response(self, HTTPStatus.OK, build_metrics_snapshot())
 
     def handle_track(self) -> None:
+        if not self.rate_limit_or_reject("/api/track"):
+            return
         try:
             payload = read_json(self)
             event = str(payload.get("event", "")).strip().lower()
@@ -758,12 +1048,15 @@ class ApiHandler(SimpleHTTPRequestHandler):
         except ValueError as exc:
             json_response(self, HTTPStatus.BAD_REQUEST, {"error": str(exc)})
         except Exception as exc:
-            json_response(self, HTTPStatus.INTERNAL_SERVER_ERROR, {"error": f"Внутренняя ошибка: {exc}"})
+            log_unexpected_error("track", exc)
+            json_response(self, HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "Внутренняя ошибка сервера."})
 
     def handle_chat(self) -> None:
+        if not self.rate_limit_or_reject("/api/chat"):
+            return
         try:
             payload = read_json(self)
-            message = str(payload.get("message", "")).strip()
+            message = enforce_text_limit(payload.get("message", ""), MAX_CHAT_MESSAGE_CHARS, "Сообщение")
             history = payload.get("history") or []
 
             if not message:
@@ -803,15 +1096,21 @@ class ApiHandler(SimpleHTTPRequestHandler):
             track_event("assistant_error", {**request_context(self), "provider": AI_PROVIDER, "error": clip_text(exc, 180)})
             json_response(self, HTTPStatus.BAD_GATEWAY, {"error": str(exc)})
         except Exception as exc:
-            json_response(self, HTTPStatus.INTERNAL_SERVER_ERROR, {"error": f"Внутренняя ошибка: {exc}"})
+            log_unexpected_error("chat", exc)
+            track_event("assistant_error", {**request_context(self), "provider": AI_PROVIDER, "error": "internal_server_error"})
+            json_response(self, HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "Внутренняя ошибка сервера."})
 
     def handle_contact(self) -> None:
+        if not self.rate_limit_or_reject("/api/contact"):
+            return
         try:
             fields, upload = read_contact_submission(self)
-            name = str(fields.get("name", "")).strip()
-            contact = str(fields.get("contact", "")).strip()
-            task = str(fields.get("task", "")).strip()
+            name = enforce_text_limit(fields.get("name", ""), MAX_CONTACT_NAME_CHARS, "Имя")
+            contact = enforce_text_limit(fields.get("contact", ""), MAX_CONTACT_FIELD_CHARS, "Контакт")
+            task = enforce_text_limit(fields.get("task", ""), MAX_TASK_CHARS, "Описание задачи")
 
+            if not name:
+                raise ValueError("Укажите имя и фамилию перед отправкой.")
             if not task:
                 raise ValueError("Опишите задачу перед отправкой.")
             if not contact:
@@ -860,7 +1159,9 @@ class ApiHandler(SimpleHTTPRequestHandler):
             track_event("lead_submit_failed", {**request_context(self), "error": clip_text(exc, 180)})
             json_response(self, HTTPStatus.BAD_GATEWAY, {"error": str(exc)})
         except Exception as exc:
-            json_response(self, HTTPStatus.INTERNAL_SERVER_ERROR, {"error": f"Внутренняя ошибка: {exc}"})
+            log_unexpected_error("contact", exc)
+            track_event("lead_submit_failed", {**request_context(self), "error": "internal_server_error"})
+            json_response(self, HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "Внутренняя ошибка сервера."})
 
 
 def main() -> None:

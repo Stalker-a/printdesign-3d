@@ -10,6 +10,7 @@ const assistantChat = document.querySelector("#assistant-chat");
 const suggestionChips = document.querySelectorAll(".suggestion-chip");
 const casesGrid = document.querySelector("#cases-grid");
 const contactForm = document.querySelector("#contact-form");
+const contactNameInput = contactForm?.querySelector('input[name="name"]');
 const contactFileInput = document.querySelector("#contact-file");
 const contactFileMeta = document.querySelector("#contact-file-meta");
 const contactStatus = document.querySelector("#contact-status");
@@ -380,15 +381,31 @@ if (contactFileInput) {
   syncContactFileMeta();
 }
 
+if (contactNameInput) {
+  contactNameInput.required = true;
+  contactNameInput.placeholder = "Имя и фамилия";
+
+  const nameLabel = contactNameInput.closest("label")?.querySelector("span");
+  if (nameLabel) {
+    nameLabel.textContent = "Имя и фамилия";
+  }
+}
+
 if (contactForm) {
   contactForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     setContactStatus("Отправляем заявку...", "info");
 
     const formData = new FormData(contactForm);
+    const nameValue = String(formData.get("name") || "").trim();
     const contactValue = String(formData.get("contact") || "").trim();
     const taskValue = String(formData.get("task") || "").trim();
     const hasFile = Boolean(contactFileInput?.files?.[0]);
+
+    if (!nameValue) {
+      setContactStatus("Укажите имя и фамилию.", "error");
+      return;
+    }
 
     if (!contactValue) {
       setContactStatus("Укажите телефон или Telegram для обратной связи.", "error");
