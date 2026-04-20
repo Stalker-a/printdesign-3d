@@ -155,15 +155,13 @@ def lead_intro_message() -> str:
 
 
 def lead_name_message() -> str:
-    return (
-        "РЈРєР°Р¶РёС‚Рµ РёРјСЏ Рё С„Р°РјРёР»РёСЋ РґР»СЏ Р·Р°СЏРІРєРё."
-    )
+    return "Укажите имя и фамилию для заявки."
 
 
 def lead_contact_message() -> str:
     return (
-        "РўРµРїРµСЂСЊ РѕС‚РїСЂР°РІСЊС‚Рµ РєРѕРЅС‚Р°РєС‚ РґР»СЏ РѕР±СЂР°С‚РЅРѕР№ СЃРІСЏР·Рё: "
-        "С‚РµР»РµС„РѕРЅ, @username РёР»Рё РґСЂСѓРіРѕР№ СѓРґРѕР±РЅС‹Р№ СЃРїРѕСЃРѕР± СЃРІСЏР·Рё."
+        "Теперь отправьте контакт для обратной связи: "
+        "телефон, @username или другой удобный способ связи."
     )
 
 
@@ -214,7 +212,7 @@ def format_client_lead_alert(
         "<b>Новая заявка из клиентского Telegram-бота</b>\n"
         f"<b>Сайт:</b> {html_escape(SITE_NAME)}\n\n"
         f"<b>Имя в Telegram:</b> {html_escape(first_name or 'Не указано')}\n"
-        f"<b>РРјСЏ Рё С„Р°РјРёР»РёСЏ:</b> {html_escape(lead_name or 'РќРµ СѓРєР°Р·Р°РЅРѕ')}\n"
+        f"<b>Имя и фамилия:</b> {html_escape(lead_name or 'Не указано')}\n"
         f"<b>Username:</b> {html_escape(username_line)}\n"
         f"<b>Telegram user id:</b> {user_id}\n"
         f"<b>Контакт:</b> {html_escape(contact)}\n\n"
@@ -225,16 +223,6 @@ def format_client_lead_alert(
 def normalize_reply(text: str) -> str:
     cleaned = str(text).strip()
     return cleaned or "Сейчас не удалось сформировать ответ. Попробуйте переформулировать вопрос."
-
-
-def trim_history(history: list[dict]) -> list[dict]:
-    cleaned = []
-    for item in history[-CLIENT_BOT_HISTORY_LIMIT * 2 :]:
-        role = item.get("role")
-        content = str(item.get("content", "")).strip()
-        if role in {"user", "assistant"} and content:
-            cleaned.append({"role": role, "content": content})
-    return cleaned[-CLIENT_BOT_HISTORY_LIMIT * 2 :]
 
 
 def handle_lead_flow(chat_id: int, text: str, leads: dict[str, dict], message: dict) -> bool:
@@ -294,20 +282,14 @@ def handle_lead_flow(chat_id: int, text: str, leads: dict[str, dict], message: d
 
 def handle_text_message(chat_id: int, text: str, sessions: dict[str, list[dict]]) -> None:
     session_key = str(chat_id)
-    history = trim_history(sessions.get(session_key, []))
-
-    if text == "/reset":
-        sessions[session_key] = []
-        save_sessions(sessions)
-        send_message(chat_id, reset_message())
-        return
+    history = sessions.get(session_key, [])
 
     send_chat_action(chat_id, "typing")
     reply = normalize_reply(generate_ai_reply(history, text))
 
     history.append({"role": "user", "content": text})
     history.append({"role": "assistant", "content": reply})
-    sessions[session_key] = trim_history(history)
+    sessions[session_key] = history[-CLIENT_BOT_HISTORY_LIMIT * 2 :]
     save_sessions(sessions)
     send_message(chat_id, reply)
 
@@ -325,6 +307,14 @@ def process_update(update: dict, sessions: dict[str, list[dict]], leads: dict[st
 
     if text == "/start":
         send_message(chat_id, start_message(first_name))
+        return
+
+    if text == "/reset":
+        sessions[str(chat_id)] = []
+        save_sessions(sessions)
+        leads.pop(str(chat_id), None)
+        save_leads(leads)
+        send_message(chat_id, reset_message())
         return
 
     if text == "/lead":
