@@ -807,6 +807,55 @@ body {
   line-height: 1.8;
 }
 
+.service-card-actions,
+.seo-service-links,
+.service-page-actions,
+.service-page-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.service-card-actions {
+  margin-top: 20px;
+}
+
+.service-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(15, 15, 15, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 252, 236, 0.84);
+  color: #171717;
+  font-weight: 700;
+}
+
+.service-link:hover,
+.service-link:focus-visible {
+  transform: translateY(-1px);
+}
+
+.seo-service-panel {
+  margin-top: 28px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(255, 252, 236, 0.96), rgba(255, 244, 196, 0.92));
+  box-shadow: var(--shadow);
+}
+
+.seo-service-panel p {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.74;
+}
+
+.seo-service-links a {
+  min-height: 46px;
+}
+
 .case-card-detailed {
   overflow: visible;
   padding: 24px;
@@ -1185,6 +1234,144 @@ body {
   padding: 28px 0 44px;
 }
 
+.service-page {
+  padding: 72px 0 88px;
+}
+
+.service-page-hero,
+.service-page-section,
+.service-page-cta,
+.service-page-sidebar,
+.service-page-faq-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.service-page-hero,
+.service-page-section,
+.service-page-cta,
+.service-page-sidebar {
+  padding: 30px;
+}
+
+.service-page-header {
+  display: grid;
+  gap: 26px;
+  margin-bottom: 28px;
+}
+
+.service-page-breadcrumbs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #6b5e2d;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.service-page-breadcrumbs a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.service-page-hero h1 {
+  margin: 0 0 16px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(2.5rem, 6vw, 4.8rem);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+}
+
+.service-page-hero p,
+.service-page-section p,
+.service-page-sidebar p,
+.service-page-faq-item p,
+.service-page-list li,
+.service-page-contact-list li {
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.service-page-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.service-page-meta article {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 15, 15, 0.1);
+  background: rgba(255, 255, 255, 0.54);
+}
+
+.service-page-meta strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.service-page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.42fr);
+  gap: 24px;
+}
+
+.service-page-content {
+  display: grid;
+  gap: 24px;
+}
+
+.service-page-sidebar {
+  position: sticky;
+  top: 108px;
+  height: fit-content;
+}
+
+.service-page-section h2,
+.service-page-sidebar h2,
+.service-page-cta h2 {
+  margin: 0 0 14px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1;
+}
+
+.service-page-list,
+.service-page-contact-list {
+  display: grid;
+  gap: 10px;
+  padding-left: 20px;
+}
+
+.service-page-cta {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+  background: linear-gradient(120deg, rgba(255, 252, 236, 0.98), rgba(255, 234, 140, 0.92));
+}
+
+.service-page-faq-list {
+  display: grid;
+  gap: 14px;
+}
+
+.service-page-faq-item {
+  overflow: hidden;
+  padding: 22px;
+}
+
+.service-page-faq-item h3 {
+  margin: 0 0 10px;
+  font-size: 1.08rem;
+}
+
 .footer-content {
   display: flex;
   align-items: center;
@@ -1233,6 +1420,7 @@ body {
   .faq-layout,
   .contact-grid,
   .assistant-grid,
+  .service-page-grid,
   .timeline {
     grid-template-columns: 1fr;
   }
@@ -1251,6 +1439,10 @@ body {
   }
 
   .material-panel {
+    position: static;
+  }
+
+  .service-page-sidebar {
     position: static;
   }
 
@@ -1328,6 +1520,10 @@ body {
   }
 
   .assistant-form {
+    grid-template-columns: 1fr;
+  }
+
+  .service-page-meta {
     grid-template-columns: 1fr;
   }
 
