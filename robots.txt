@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /metrics.html
+
+Sitemap: https://3ddesign.org.kz/sitemap.xml
