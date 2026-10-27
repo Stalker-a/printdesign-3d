@@ -2,6 +2,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 import threading
 import time
 import uuid
@@ -18,7 +19,9 @@ from urllib import error, parse, request
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
+# На Vercel файловая система только для чтения, писать можно лишь во временную папку.
+ON_VERCEL = bool(os.getenv("VERCEL"))
+DATA_DIR = Path(tempfile.gettempdir()) / "3d_design_data" if ON_VERCEL else BASE_DIR / "data"
 UPLOAD_DIR = DATA_DIR / "uploads"
 ANALYTICS_DIR = DATA_DIR / "analytics"
 EVENT_LOG_PATH = ANALYTICS_DIR / "events.jsonl"
@@ -66,7 +69,8 @@ LEADS_TELEGRAM_TARGET = os.getenv("LEADS_TELEGRAM_TARGET", TELEGRAM_TARGET).stri
 SITE_NAME = os.getenv("SITE_NAME", "3d_design").strip()
 HOST = os.getenv("HOST", "0.0.0.0").strip()
 PORT = int(os.getenv("PORT", "8000"))
-MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", "10485760"))
+# Vercel не принимает запросы больше 4.5 МБ.
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", "3145728" if ON_VERCEL else "10485760"))
 INTERNAL_ANALYTICS_ENABLED = env_flag("INTERNAL_ANALYTICS_ENABLED", "1")
 METRICS_TOKEN = os.getenv("METRICS_TOKEN", "").strip()
 METRICS_HEADER_NAME = os.getenv("METRICS_HEADER_NAME", "X-Metrics-Token").strip() or "X-Metrics-Token"
@@ -383,7 +387,9 @@ def save_uploaded_file(upload: UploadedFile, lead_id: str) -> dict:
         "stored_name": stored_name,
         "content_type": upload.content_type,
         "size": upload.size,
-        "path": str(target_path.relative_to(BASE_DIR)).replace("\\", "/"),
+        "path": str(
+            target_path.relative_to(BASE_DIR) if target_path.is_relative_to(BASE_DIR) else target_path
+        ).replace("\\", "/"),
     }
 
 
@@ -417,6 +423,11 @@ def request_comes_from_trusted_proxy(handler) -> bool:
 
 
 def get_client_ip(handler) -> str:
+    if ON_VERCEL:
+        # Vercel сам выставляет эти заголовки и не пропускает подделанные клиентом.
+        vercel_ip = handler.headers.get("X-Real-IP", "") or handler.headers.get("X-Forwarded-For", "").split(",", 1)[0]
+        if vercel_ip.strip():
+            return vercel_ip.strip()
     if request_comes_from_trusted_proxy(handler):
         cf_ip = handler.headers.get("CF-Connecting-IP", "")
         if cf_ip:
