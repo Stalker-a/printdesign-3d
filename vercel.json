@@ -1,6 +1,9 @@
 {
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "redirects": [
+    { "source": "/server.py", "destination": "/", "permanent": false },
+    { "source": "/requirements.txt", "destination": "/", "permanent": false }
   ],
   "headers": [
     {
