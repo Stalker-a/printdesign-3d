@@ -1,68 +1,75 @@
-# 3d_design
+# 3D Design — сайт студии 3D-печати с AI-консультантом
 
-Готовый сайт студии 3D-печати с:
+**Live:** https://printdesign-3d-three.vercel.app
 
-- реальным AI-чатом через OpenAI API
-- отправкой обращений из чата в Telegram
-- отправкой заявок из формы в Telegram
-- Python-сервером без внешних зависимостей
+> Website for a 3D printing studio in Kazakhstan: an AI consultant that turns a visitor's question into a structured lead, and lead delivery (with file attachments) straight to Telegram.
 
-## Что внутри
+![Главная страница](docs/screenshot.jpg)
 
-- `index.html` — главная страница
-- `css/style.css` — стили
-- `js/main.js` — логика интерфейса, чата и формы
-- `server.py` — сервер, OpenAI proxy и отправка в Telegram
-- `.env.example` — шаблон конфигурации
+## Задача
 
-## Быстрый запуск
+Клиенты студии 3D-печати часто не знают, какой материал и технология им нужны, и пишут в мессенджеры одно и то же: «сколько стоит», «можно ли по фото». Менеджер тратит время на одинаковые ответы, а заявки теряются в переписке.
 
-2. Заполните:
-   - `OPENAI_API_KEY`
-   - `TELEGRAM_BOT_TOKEN`
-   - `TELEGRAM_CHAT_ID`
-3. Запустите сервер:
+## Решение
+
+- **AI-консультант на сайте** уточняет у клиента материал, размеры и наличие модели и подводит к заявке.
+- **Форма заявки с файлом** (фото, STL, STEP, PDF, архив) — заявка и вложение сразу приходят владельцу в Telegram.
+- **Уведомления о диалогах**: каждое обращение к AI-консультанту дублируется в Telegram, чтобы владелец видел интерес клиентов.
+- **SEO-страницы услуг**: 3D-печать, 3D-сканирование, реверс-инжиниринг, прототипирование, изготовление деталей.
+- Мультиязычный интерфейс: RU / EN / ZH / KZ.
+
+## Технологии
+
+| Часть | Что использовано |
+|---|---|
+| Фронтенд | HTML, CSS, JavaScript без фреймворков |
+| Бэкенд | Python (только стандартная библиотека), `http.server` |
+| AI | Cloudflare Workers AI (`gpt-oss-20b`); также поддерживаются OpenAI, Hugging Face, Ollama |
+| Уведомления | Telegram Bot API |
+| Хостинг | Vercel (статика + Python-функции в `api/`) |
+
+## Безопасность
+
+- Ограничение частоты запросов по IP для чата и формы
+- Проверка `Origin` / `Referer` — API нельзя вызвать с чужого сайта
+- Проверка типа и содержимого загружаемых файлов, лимит размера
+- Ключи и токены только в переменных окружения, в репозитории их нет
+
+## Структура
+
+- `index.html`, `services/` — страницы сайта
+- `css/style.css`, `js/main.js` — стили, логика интерфейса, чата и формы
+- `server.py` — API: AI-прокси, приём заявок, отправка в Telegram
+- `api/` — точки входа для Vercel (`/api/chat`, `/api/contact`, `/api/track`, `/api/metrics`)
+- `client_bot.py` — Telegram-бот для клиентов (запускается отдельно, требует постоянно работающий сервер)
+
+## Локальный запуск
+
+1. Скопируйте `.env.example` в `.env` и заполните:
+   - `AI_PROVIDER` и ключ выбранного провайдера (например, `CLOUDFLARE_ACCOUNT_ID` и `CLOUDFLARE_API_TOKEN`)
+   - `LEADS_TELEGRAM_BOT_TOKEN` и `LEADS_TELEGRAM_CHAT_ID`
+2. Запустите сервер:
 
 ```powershell
 python server.py
 ```
 
-4. Откройте:
+3. Откройте http://127.0.0.1:8000
 
-```text
-http://127.0.0.1:8000
-```
-
-## Важно про Telegram
-
-
-Рекомендуемый путь:
-
-1. Создайте бота через `@BotFather`
-2. Напишите этому боту из аккаунта, в который должны приходить заявки
-3. Получите numeric `chat_id`
-4. Запишите его в `.env` как `TELEGRAM_CHAT_ID`
-
-Можно использовать helper:
+Chat ID можно узнать helper-скриптом (сначала напишите боту `/start`):
 
 ```powershell
 python get_telegram_chat_id.py
 ```
 
-Поле `TELEGRAM_TARGET=@SHAKOTAN2` оставлено как запасной вариант, но для личной переписки Telegram может этого не принять.
+## Деплой на Vercel
 
-## Что отправляется в Telegram
+1. Импортируйте репозиторий в Vercel (Framework Preset: Other — уже задан в `vercel.json`).
+2. Задайте переменные окружения: `AI_PROVIDER`, ключи провайдера, `LEADS_TELEGRAM_BOT_TOKEN`, `LEADS_TELEGRAM_CHAT_ID`, `INTERNAL_ANALYTICS_ENABLED=0`.
+3. Redeploy.
 
-- каждое обращение из AI-чата
-- каждая заявка из контактной формы
+На Vercel лимит вложения — 3 МБ (ограничение платформы на размер запроса).
 
-## OpenAI
+---
 
-Сервер использует endpoint `POST /v1/responses`.
-Модель задается через `OPENAI_MODEL`.
-
-По умолчанию:
-
-```text
-OPENAI_MODEL=gpt-5.4-mini
-```
+Автор: [Yaroslav](https://github.com/Stalker-a) — AI-боты, автоматизация и веб-приложения для бизнеса.
